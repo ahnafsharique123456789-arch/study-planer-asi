@@ -2,3 +2,4 @@ flask
 werkzeug
 google-genai
 gunicorn
+psycopg[binary]
