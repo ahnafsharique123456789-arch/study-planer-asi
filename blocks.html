@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Study Blocks — Study Planner{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Study Blocks</h1>
+    <p class="subtitle">Organize daily syllabus targets, update session lengths, and track completion.</p>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-label">Visible Blocks</div>
+    <div class="kpi-value" id="kpiTotalBlocks">0</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Completed</div>
+    <div class="kpi-value" id="kpiDoneBlocks">0</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Planned Time</div>
+    <div class="kpi-value" id="kpiPlannedMins">0m</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Create Study Block</h2>
+  <form id="addBlockForm" class="row">
+    <select id="blockSubject">
+      {% for s in subjects %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+    </select>
+    <input id="blockTopic" type="text" placeholder="Topic (e.g., Ratio & Proportion, Direct & Indirect Speech)" required />
+    <input id="blockMinutes" type="number" min="5" max="240" value="30" style="max-width:105px;" title="Duration in minutes" />
+    <button type="submit">Add Block</button>
+  </form>
+
+  <div class="row" style="padding-top:0.5rem; border-top:1px solid var(--border); margin-top:0.5rem;">
+    <select id="filterSubject" onchange="loadBlocks()">
+      <option value="">All Subjects</option>
+      {% for s in subjects %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+    </select>
+    <select id="filterStatus" onchange="loadBlocks()">
+      <option value="all">All Statuses</option>
+      <option value="pending">Pending Only</option>
+      <option value="done">Completed Only</option>
+    </select>
+  </div>
+
+  <div id="blocksList" style="margin-top:0.75rem;"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  async function loadBlocks() {
+    const subj = encodeURIComponent(document.getElementById("filterSubject").value);
+    const status = encodeURIComponent(document.getElementById("filterStatus").value);
+    const res = await fetch(`/api/blocks?subject=${subj}&status=${status}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    updateTopStats(data.stats);
+
+    const total = data.blocks.length;
+    const done = data.blocks.filter((b) => b.is_done).length;
+    const mins = data.blocks.reduce((acc, b) => acc + (b.planned_minutes || 0), 0);
+    document.getElementById("kpiTotalBlocks").textContent = String(total);
+    document.getElementById("kpiDoneBlocks").textContent = String(done);
+    document.getElementById("kpiPlannedMins").textContent = `${mins}m`;
+
+    const list = document.getElementById("blocksList");
+    list.innerHTML = "";
+    if (!data.blocks.length) {
+      list.innerHTML = `<div style="padding:1.25rem; text-align:center; color:var(--muted); background:var(--surface-subtle); border-radius:10px;">No study blocks match the selected filter.</div>`;
+      return;
+    }
+
+    for (const b of data.blocks) {
+      const div = document.createElement("div");
+      div.style.cssText =
+        "display:flex; justify-content:space-between; align-items:center; gap:0.85rem; padding:0.85rem 1rem; border:1px solid var(--border); border-radius:12px; margin-bottom:0.6rem; background:var(--surface);";
+      div.innerHTML = `
+        <div style="display:flex; align-items:center; gap:0.65rem; flex-wrap:wrap;">
+          <span class="track-pill">${escapeHtml(b.subject)}</span>
+          <strong style="font-size:0.95rem; ${b.is_done ? "text-decoration:line-through; color:var(--muted);" : ""}">${escapeHtml(b.topic)}</strong>
+          <span style="color:var(--muted); font-size:0.82rem; font-weight:600; font-variant-numeric:tabular-nums;">${b.planned_minutes} min</span>
+        </div>
+        <div style="display:flex; gap:0.45rem; flex-wrap:wrap;">
+          <button type="button" class="secondary" onclick="toggleDone(${b.id}, ${!b.is_done})">${b.is_done ? "Reopen" : "Complete"}</button>
+          <button type="button" class="secondary" onclick="editBlock(${b.id}, '${escapeJs(b.topic)}', ${b.planned_minutes})">Edit</button>
+          <button type="button" class="danger" onclick="deleteBlock(${b.id})">Delete</button>
+        </div>
+      `;
+      list.appendChild(div);
+    }
+  }
+
+  document.getElementById("addBlockForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await fetch("/api/blocks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subject: document.getElementById("blockSubject").value,
+        topic: document.getElementById("blockTopic").value,
+        planned_minutes: parseInt(document.getElementById("blockMinutes").value, 10),
+      }),
+    });
+    document.getElementById("blockTopic").value = "";
+    loadBlocks();
+  });
+
+  async function toggleDone(id, isDone) {
+    await fetch(`/api/blocks/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_done: isDone }),
+    });
+    loadBlocks();
+  }
+
+  async function editBlock(id, currentTopic, currentMins) {
+    const topic = prompt("Update topic name:", currentTopic);
+    if (topic === null) return;
+    const minsRaw = prompt("Update planned minutes:", String(currentMins));
+    if (minsRaw === null) return;
+    await fetch(`/api/blocks/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topic, planned_minutes: parseInt(minsRaw, 10) || currentMins }),
+    });
+    loadBlocks();
+  }
+
+  async function deleteBlock(id) {
+    await fetch(`/api/blocks/${id}`, { method: "DELETE" });
+    loadBlocks();
+  }
+
+  loadBlocks();
+</script>
+{% endblock %}

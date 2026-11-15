@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Mock Tests — Study Planner{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Mock Tests</h1>
+    <p class="subtitle">Log test scores, identify weak topics, and keep structured error notes for revision.</p>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Record Mock Score</h2>
+  <form id="mockForm">
+    <div class="row">
+      <select id="mockSubject">
+        {% for s in subjects %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+      </select>
+      <input id="mockDate" type="date" required />
+      <input id="mockScore" type="number" step="0.5" placeholder="Score" style="max-width:120px;" required />
+      <input id="mockMaxScore" type="number" step="0.5" value="100" placeholder="Max" style="max-width:120px;" required />
+    </div>
+    <div class="row">
+      <input id="mockWeakTopics" type="text" placeholder="Weak topics (e.g., Mensuration, Clauses)" />
+      <input id="mockNotes" type="text" placeholder="Key mistake notes or time-management observations..." />
+      <button type="submit">Save Result</button>
+    </div>
+  </form>
+
+  <div style="overflow-x:auto; margin-top:0.5rem;">
+    <table style="width:100%; border-collapse:collapse; font-size:0.88rem; font-variant-numeric:tabular-nums;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border); text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.04em;">
+          <th style="padding:0.65rem 0.6rem;">Date</th>
+          <th style="padding:0.65rem 0.6rem;">Subject</th>
+          <th style="padding:0.65rem 0.6rem;">Score</th>
+          <th style="padding:0.65rem 0.6rem;">Percentage</th>
+          <th style="padding:0.65rem 0.6rem;">Weak Topics</th>
+          <th style="padding:0.65rem 0.6rem;">Notes</th>
+        </tr>
+      </thead>
+      <tbody id="mocksBody"></tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.getElementById("mockDate").valueAsDate = new Date();
+
+  async function loadMocks() {
+    const res = await fetch("/api/mocks");
+    if (!res.ok) return;
+    const data = await res.json();
+    updateTopStats(data.stats);
+    const tbody = document.getElementById("mocksBody");
+    tbody.innerHTML = "";
+    if (!data.mocks.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="padding:1.25rem; text-align:center; color:var(--muted);">No mock test results logged yet.</td></tr>`;
+      return;
+    }
+    for (const m of data.mocks) {
+      const pct = m.max_score > 0 ? ((m.score / m.max_score) * 100).toFixed(1) : "0.0";
+      const tr = document.createElement("tr");
+      tr.style.borderBottom = "1px solid var(--border)";
+      tr.innerHTML = `
+        <td style="padding:0.65rem 0.6rem; white-space:nowrap;">${escapeHtml(m.test_date)}</td>
+        <td style="padding:0.65rem 0.6rem;"><span class="track-pill">${escapeHtml(m.subject)}</span></td>
+        <td style="padding:0.65rem 0.6rem;"><strong>${m.score}</strong> / ${m.max_score}</td>
+        <td style="padding:0.65rem 0.6rem; font-weight:700;">${pct}%</td>
+        <td style="padding:0.65rem 0.6rem;">${escapeHtml(m.weak_topics || "-")}</td>
+        <td style="padding:0.65rem 0.6rem; color:var(--text-secondary);">${escapeHtml(m.mistake_notes || "-")}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  document.getElementById("mockForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await fetch("/api/mocks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subject: document.getElementById("mockSubject").value,
+        test_date: document.getElementById("mockDate").value,
+        score: parseFloat(document.getElementById("mockScore").value),
+        max_score: parseFloat(document.getElementById("mockMaxScore").value),
+        weak_topics: document.getElementById("mockWeakTopics").value,
+        mistake_notes: document.getElementById("mockNotes").value,
+      }),
+    });
+    document.getElementById("mockScore").value = "";
+    document.getElementById("mockWeakTopics").value = "";
+    document.getElementById("mockNotes").value = "";
+    loadMocks();
+  });
+
+  loadMocks();
+</script>
+{% endblock %}

@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Study Planner{% endblock %}</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-subtle: #f1f5f9;
+      --text: #0f172a;
+      --text-secondary: #475569;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --primary: #4338ca;
+      --primary-hover: #3730a3;
+      --primary-soft: #eef2ff;
+      --success-bg: #dcfce7;
+      --success-text: #166534;
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.06);
+      --shadow-lg: 0 20px 40px rgba(15, 23, 42, 0.14);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding-bottom: 104px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .topbar {
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .topbar-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.85rem;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-weight: 800;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #4338ca, #6366f1);
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 800;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      background: var(--surface-subtle);
+      padding: 0.25rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.86rem;
+      padding: 0.42rem 0.8rem;
+      border-radius: 7px;
+      transition: all 0.15s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.65);
+    }
+
+    .nav-link.active {
+      background: var(--surface);
+      color: var(--primary);
+      box-shadow: var(--shadow-sm);
+      font-weight: 700;
+    }
+
+    .right-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+    }
+
+    .stat-chip {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.34rem 0.72rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .track-pill {
+      display: inline-flex;
+      align-items: center;
+      background: var(--primary-soft);
+      color: var(--primary);
+      border: 1px solid #c7d2fe;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .page {
+      max-width: 1120px;
+      margin: 1.5rem auto;
+      padding: 0 1.25rem;
+    }
+
+    .page-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.45rem;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 1.25rem;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.15rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .kpi-label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+
+    .kpi-value {
+      margin-top: 0.25rem;
+      font-size: 1.45rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+    }
+
+    h1 {
+      margin: 0 0 0.25rem;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: var(--text);
+    }
+
+    h2 {
+      margin: 0 0 0.8rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      color: var(--text);
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      margin-bottom: 0.9rem;
+      align-items: center;
+    }
+
+    input, select, textarea {
+      padding: 0.6rem 0.8rem;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-family: inherit;
+      background: var(--surface);
+      color: var(--text);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.14);
+    }
+
+    input[type="text"], input[type="number"], textarea {
+      flex: 1;
+      min-width: 150px;
+    }
+
+    button {
+      padding: 0.6rem 0.95rem;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      background: var(--primary);
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 0.86rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      background: var(--surface-subtle);
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+
+    button.secondary:hover:not(:disabled) {
+      background: #e2e8f0;
+    }
+
+    button.danger {
+      background: #fef2f2;
+      color: var(--danger);
+      border-color: #fecaca;
+    }
+
+    button.danger:hover:not(:disabled) {
+      background: var(--danger);
+      color: #ffffff;
+    }
+
+    .floating-win {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      width: 312px;
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      z-index: 60;
+      overflow: hidden;
+    }
+
+    .floating-header {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 0.65rem 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: move;
+      user-select: none;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .floating-body {
+      padding: 0.9rem;
+    }
+
+    .floating-win.collapsed .floating-body {
+      display: none;
+    }
+
+    .mini-clock {
+      font-size: 1.65rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      margin: 0.35rem 0 0.65rem;
+      letter-spacing: -0.02em;
+    }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <nav class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-group">
+        <a class="brand" href="{{ url_for('blocks_page') }}">
+          <span class="brand-mark">SP</span>
+          <span>Study Planner</span>
+        </a>
+        <select id="headerGradeSelect" onchange="changeGrade(this.value)" title="Grade or Competitive Exam">
+          {% for tr in tracks %}
+            <option value="{{ tr }}" {% if tr == stats.grade_level %}selected{% endif %}>{{ tr }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="nav-links">
+        <a class="nav-link {% if active_page == 'blocks' %}active{% endif %}" href="{{ url_for('blocks_page') }}">Study Blocks</a>
+        <a class="nav-link {% if active_page == 'ai' %}active{% endif %}" href="{{ url_for('ai_page') }}">AI Studio</a>
+        <a class="nav-link {% if active_page == 'focus' %}active{% endif %}" href="{{ url_for('focus_page') }}">Focus Timer</a>
+        <a class="nav-link {% if active_page == 'mocks' %}active{% endif %}" href="{{ url_for('mocks_page') }}">Mock Tests</a>
+      </div>
+
+      <div class="right-controls">
+        <span class="stat-chip" id="navStreak">Streak: {{ stats.streak_days }}d</span>
+        <span class="stat-chip" id="navMinutes">Today: {{ stats.completed_minutes }}/{{ stats.planned_minutes }}m</span>
+        <form method="POST" action="{{ url_for('logout') }}" style="margin:0;">
+          <button type="submit" class="secondary">Sign Out ({{ username }})</button>
+        </form>
+      </div>
+    </div>
+  </nav>
+
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+
+  <aside class="floating-win" id="floatingWin">
+    <div class="floating-header" id="floatingDragHandle">
+      <span>Focus Dock</span>
+      <button type="button" class="secondary" style="padding:0.18rem 0.5rem; font-size:0.74rem;" onclick="toggleFloatingCollapse()">_</button>
+    </div>
+    <div class="floating-body">
+      <div style="font-size:0.76rem; color:var(--muted); font-weight:600;">25m Sprint Timer & Scratchpad</div>
+      <div class="mini-clock" id="floatClock">25:00</div>
+      <div class="row" style="margin-bottom:0.65rem; justify-content:center;">
+        <button type="button" onclick="toggleFloatTimer()" id="floatStartBtn">Start</button>
+        <button type="button" class="secondary" onclick="resetFloatTimer()">Reset</button>
+      </div>
+      <textarea id="floatScratchpad" rows="2" placeholder="Quick formula, key date, or doubt..." style="width:100%; min-height:56px;"></textarea>
+    </div>
+  </aside>
+
+  <script>
+    async function changeGrade(newGrade) {
+      await fetch("/api/profile/grade", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ grade_level: newGrade }),
+      });
+    }
+
+    function updateTopStats(stats) {
+      if (!stats) return;
+      document.getElementById("navStreak").textContent = `Streak: ${stats.streak_days}d`;
+      document.getElementById("navMinutes").textContent =
+        `Today: ${stats.completed_minutes}/${stats.planned_minutes}m`;
+    }
+
+    function toggleFloatingCollapse() {
+      document.getElementById("floatingWin").classList.toggle("collapsed");
+    }
+
+    let floatSec = 1500;
+    let floatInterval = null;
+    function renderFloatClock() {
+      const m = String(Math.floor(floatSec / 60)).padStart(2, "0");
+      const s = String(floatSec % 60).padStart(2, "0");
+      document.getElementById("floatClock").textContent = `${m}:${s}`;
+    }
+    function toggleFloatTimer() {
+      const btn = document.getElementById("floatStartBtn");
+      if (floatInterval) {
+        clearInterval(floatInterval);
+        floatInterval = null;
+        btn.textContent = "Start";
+        return;
+      }
+      btn.textContent = "Pause";
+      floatInterval = setInterval(() => {
+        if (floatSec > 0) {
+          floatSec -= 1;
+          renderFloatClock();
+        } else {
+          clearInterval(floatInterval);
+          floatInterval = null;
+          btn.textContent = "Start";
+          alert("Focus sprint complete!");
+        }
+      }, 1000);
+    }
+    function resetFloatTimer() {
+      if (floatInterval) {
+        clearInterval(floatInterval);
+        floatInterval = null;
+      }
+      document.getElementById("floatStartBtn").textContent = "Start";
+      floatSec = 1500;
+      renderFloatClock();
+    }
+
+    (function enableDrag() {
+      const win = document.getElementById("floatingWin");
+      const handle = document.getElementById("floatingDragHandle");
+      let dragging = false, offsetX = 0, offsetY = 0;
+      handle.addEventListener("mousedown", (e) => {
+        dragging = true;
+        const rect = win.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+        win.style.right = "auto";
+        win.style.bottom = "auto";
+      });
+      document.addEventListener("mousemove", (e) => {
+        if (!dragging) return;
+        win.style.left = `${Math.max(8, e.clientX - offsetX)}px`;
+        win.style.top = `${Math.max(8, e.clientY - offsetY)}px`;
+      });
+      document.addEventListener("mouseup", () => { dragging = false; });
+    })();
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+    function escapeJs(str) {
+      return String(str).replaceAll("\\", "\\\\").replaceAll("'", "\\'").replaceAll("\n", " ");
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

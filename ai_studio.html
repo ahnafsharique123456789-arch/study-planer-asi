@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}AI Studio — Study Planner{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>AI Study Studio</h1>
+    <p class="subtitle">Generate focused study blocks, concise topic briefs, quizzes, and revision priorities for <span class="track-pill">{{ stats.grade_level }}</span></p>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Chapter Breakdown</h2>
+  <p class="subtitle" style="margin-bottom:0.85rem;">Break a broad chapter into bite-sized blocks and add them directly to your study list.</p>
+  <div class="row">
+    <select id="aiSubject">
+      {% for s in subjects %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+    </select>
+    <input id="splitChapterInput" type="text" placeholder="Broad chapter (e.g., Mensuration, Tenses, Light)..." />
+    <button type="button" onclick="splitTopic()">Generate Blocks</button>
+  </div>
+  <div id="splitSuggestions"></div>
+</div>
+
+<div class="card">
+  <h2>Topic Brief, Quiz & Revision Plan</h2>
+  <div class="row">
+    <select id="toolSubject">
+      {% for s in subjects %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+    </select>
+    <input id="toolTopicInput" type="text" placeholder="Enter a specific topic for summary or quiz..." />
+    <button type="button" class="secondary" onclick="runSummary()">Topic Summary</button>
+    <button type="button" onclick="runQuiz()">Practice Quiz</button>
+  </div>
+
+  <div class="row" style="padding-top:0.5rem; border-top:1px solid var(--border); margin-top:0.5rem;">
+    <input id="weakTopicsInput" type="text" placeholder="Additional weak topics to prioritize alongside your mock tests..." />
+    <button type="button" class="secondary" onclick="runWeakPlan()">Prioritize Weak Topics</button>
+  </div>
+
+  <div id="aiTextOut" style="display:none; background:var(--surface-subtle); border:1px solid var(--border); border-radius:12px; padding:1rem; white-space:pre-wrap; font-size:0.9rem; line-height:1.55; margin-top:0.85rem;"></div>
+  <div id="quizOut" style="margin-top:0.9rem;"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  function showOut(msg) {
+    const el = document.getElementById("aiTextOut");
+    el.style.display = "block";
+    el.textContent = msg;
+  }
+
+  async function splitTopic() {
+    const chapter = document.getElementById("splitChapterInput").value.trim();
+    const subject = document.getElementById("aiSubject").value;
+    if (!chapter) return;
+    showOut("Generating study blocks...");
+    const res = await fetch("/api/ai/split-topic", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chapter, subject }),
+    });
+    const data = await res.json();
+    if (!res.ok) return showOut(`Error: ${data.error}`);
+    showOut(`Suggested study blocks for "${chapter}":`);
+    const box = document.getElementById("splitSuggestions");
+    box.innerHTML = "";
+    for (const item of data.blocks) {
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex; justify-content:space-between; align-items:center; gap:0.75rem; padding:0.7rem 0.9rem; border:1px solid var(--border); border-radius:10px; margin-bottom:0.5rem; background:var(--surface);";
+      row.innerHTML = `
+        <div><strong>${escapeHtml(item.topic)}</strong> <span style="color:var(--muted); font-size:0.84rem;">(${item.planned_minutes} min)</span></div>
+        <button type="button" onclick="addSplitBlock('${escapeJs(item.subject)}', '${escapeJs(item.topic)}', ${item.planned_minutes}, this)">+ Add Block</button>
+      `;
+      box.appendChild(row);
+    }
+  }
+
+  async function addSplitBlock(subject, topic, planned_minutes, btn) {
+    const res = await fetch("/api/blocks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subject, topic, planned_minutes }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      updateTopStats(data.stats);
+      btn.textContent = "Added";
+      btn.disabled = true;
+    }
+  }
+
+  async function runSummary() {
+    const subject = document.getElementById("toolSubject").value;
+    const topic = document.getElementById("toolTopicInput").value.trim();
+    if (!topic) return;
+    document.getElementById("quizOut").innerHTML = "";
+    showOut(`Preparing summary for "${topic}"...`);
+    const res = await fetch("/api/ai/summary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subject, topic }),
+    });
+    const data = await res.json();
+    showOut(res.ok ? data.summary : `Error: ${data.error}`);
+  }
+
+  async function runQuiz() {
+    const subject = document.getElementById("toolSubject").value;
+    const topic = document.getElementById("toolTopicInput").value.trim();
+    if (!topic) return;
+    document.getElementById("aiTextOut").style.display = "none";
+    const quizOut = document.getElementById("quizOut");
+    quizOut.innerHTML = `<p style="color:var(--muted);">Generating practice questions on "${escapeHtml(topic)}"...</p>`;
+    const res = await fetch("/api/ai/quiz", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subject, topic }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      quizOut.innerHTML = `<p style="color:var(--danger); font-weight:600;">Error: ${escapeHtml(data.error)}</p>`;
+      return;
+    }
+    quizOut.innerHTML = "";
+    data.questions.forEach((q, idx) => {
+      const div = document.createElement("div");
+      div.style.cssText = "padding:0.9rem 1rem; border:1px solid var(--border); border-radius:12px; margin-bottom:0.75rem; background:var(--surface);";
+      const opts = (q.options || []).map((o, i) =>
+        `<label style="display:block; margin:0.35rem 0; font-size:0.9rem; cursor:pointer;"><input type="radio" name="q${idx}" value="${i}" /> ${escapeHtml(o)}</label>`
+      ).join("");
+      div.innerHTML = `
+        <div style="margin-bottom:0.45rem;"><strong>Q${idx + 1}.</strong> ${escapeHtml(q.question)}</div>
+        ${opts}
+        <button type="button" class="secondary" style="margin-top:0.45rem;" onclick="checkQ(${idx}, ${q.answer_index}, '${escapeJs(q.explanation || "")}')">Check Answer</button>
+        <div id="qfb${idx}" style="font-size:0.86rem; font-weight:600; margin-top:0.45rem;"></div>
+      `;
+      quizOut.appendChild(div);
+    });
+  }
+
+  function checkQ(idx, ansIdx, expl) {
+    const chosen = document.querySelector(`input[name="q${idx}"]:checked`);
+    const fb = document.getElementById(`qfb${idx}`);
+    if (!chosen) { fb.textContent = "Select an option first."; return; }
+    const ok = parseInt(chosen.value, 10) === ansIdx;
+    fb.style.color = ok ? "#166534" : "#b91c1c";
+    fb.textContent = `${ok ? "Correct." : "Incorrect."} ${expl}`;
+  }
+
+  async function runWeakPlan() {
+    document.getElementById("quizOut").innerHTML = "";
+    const weak_topics = document.getElementById("weakTopicsInput").value.trim();
+    showOut("Building prioritized revision plan...");
+    const res = await fetch("/api/ai/weak-topics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weak_topics }),
+    });
+    const data = await res.json();
+    showOut(res.ok ? data.plan : `Error: ${data.error}`);
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In — Study Planner</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(160deg, #eef2ff 0%, #f8fafc 45%, #f1f5f9 100%);
+      color: #0f172a;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+    }
+    .auth-card {
+      width: 100%;
+      max-width: 440px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 2.1rem;
+      box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
+    }
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+    .brand-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #4338ca, #6366f1);
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.9rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+    }
+    .subtitle {
+      margin: 0.35rem 0 1.35rem;
+      color: #475569;
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+    .field {
+      margin-top: 0.95rem;
+    }
+    label {
+      display: block;
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 0.35rem;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.65rem 0.8rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 0.92rem;
+      font-family: inherit;
+      background: #ffffff;
+      color: #0f172a;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #4338ca;
+      box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.14);
+    }
+    .hint {
+      margin-top: 0.3rem;
+      font-size: 0.77rem;
+      color: #64748b;
+    }
+    .error-banner {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 0.7rem 0.85rem;
+      font-size: 0.86rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .submit-btn {
+      margin-top: 1.5rem;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: #4338ca;
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.94rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .submit-btn:hover {
+      background: #3730a3;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-card">
+    <div class="brand-row">
+      <span class="brand-badge">SP</span>
+      <span style="font-weight:700; font-size:0.92rem; color:#4338ca;">Academic Workspace</span>
+    </div>
+    <h1>Study Planner</h1>
+    <p class="subtitle">Sign in to access your saved study blocks, mock score log, and AI study tools.</p>
+
+    {% if error %}
+      <div class="error-banner">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('login') }}">
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" required autocomplete="username" placeholder="Enter your username" />
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="Enter your password" />
+      </div>
+
+      <div class="field">
+        <label for="grade_level">Grade or Competitive Exam Track</label>
+        <select id="grade_level" name="grade_level">
+          {% for tr in tracks %}
+            <option value="{{ tr }}">{{ tr }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="gemini_api_key">Gemini API Key (Optional)</label>
+        <input id="gemini_api_key" name="gemini_api_key" type="password" placeholder="AIza..." autocomplete="off" />
+        <div class="hint">
+          {% if has_env_key %}
+            Environment key detected; leave blank to use it or enter a session-specific key.
+          {% else %}
+            Kept in your current browser session only.
+          {% endif %}
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn">Continue to Workspace</button>
+    </form>
+  </div>
+</body>
+</html>
